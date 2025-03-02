@@ -1,0 +1,16 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\data",
+    "\\db",
+    "\\model",
+    "\\model\\person_det",
+    "\\model\\person_det\\yolov5",
+    "\\model\\person_det\\yolov5\\utils",
+    "\\static",
+    "\\templates",
+    "\\util"
+  ],
+  "SelectedNode": "\\main.py",
+  "PreviewInSolutionExplorer": false
+}
