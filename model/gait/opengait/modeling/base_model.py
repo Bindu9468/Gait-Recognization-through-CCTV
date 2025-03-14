@@ -114,7 +114,7 @@ class BaseModel(nn.Module):
     def _load_ckpt(self, save_name):
         load_ckpt_strict = self.engine_cfg['restore_ckpt_strict']
 
-        checkpoint = torch.load(save_name, map_location=torch.device(self.device))
+        checkpoint = torch.load(save_name, map_location=torch.device(self.device), weights_only=True )
         model_state_dict = checkpoint['model']
 
         if not load_ckpt_strict:

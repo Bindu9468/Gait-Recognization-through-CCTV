@@ -673,6 +673,7 @@ class AutoShape(nn.Module):
             autocast = self.amp and (p.device.type != 'cpu')  # Automatic Mixed Precision (AMP) inference
             if isinstance(ims, torch.Tensor):  # torch
                 with amp.autocast(autocast):
+                # with torch.amp.autocast('cuda', autocast):
                     return self.model(ims.to(p.device).type_as(p), augment=augment)  # inference
 
             # Pre-process
@@ -700,6 +701,8 @@ class AutoShape(nn.Module):
             x = torch.from_numpy(x).to(p.device).type_as(p) / 255  # uint8 to fp16/32
 
         with amp.autocast(autocast):
+        #with torch.amp.autocast('cuda', autocast):
+
             # Inference
             with dt[1]:
                 y = self.model(x, augment=augment)  # forward

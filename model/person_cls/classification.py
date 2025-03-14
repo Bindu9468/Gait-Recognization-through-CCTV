@@ -45,7 +45,7 @@ class Classification(object):
         else:
             self.model = get_model_from_name[self.backbone](input_shape=self.input_shape, num_classes=self.num_classes, pretrained=False)
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model.load_state_dict(torch.load(self.model_path, map_location=device))
+        self.model.load_state_dict(torch.load(self.model_path, map_location=device, weights_only=True))
         self.model = self.model.eval()
         # print('\t {} model, and classes loaded.'.format(self.model_path))
 
