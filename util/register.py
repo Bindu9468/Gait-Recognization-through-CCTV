@@ -131,11 +131,20 @@ def run_opengait():
     for i in res:
         print(i)
         for j in list(res[i]):
+         
+            print(f"DEBUG: Processing {j} -> {res[i][j]}")
+
             vid = j.split("-")[-1]
             pname = get_pname_from_vid(vid)
+            
+            if pname is None:
+                continue  # Skip processing if pname is missing
             label = pname + "-" + vid
             print("\t {0:12}\t{1:8}\t{2:5.3f}\t{3:6.3f}%".format(pname, vid, res[i][j]["dist"], res[i][j]["similarity"] * 100))
+            
+            print(f"DEBUG: vid={vid}, pname={pname}")
 
+            
             res[i][label] = res[i].pop(j)
             if not person_label_exists and res[i][label]["similarity"] > 0.5:
                 person_label.append(pname + ' {:.2f}%'.format(100*res[i][label]["similarity"]))
@@ -144,6 +153,8 @@ def run_opengait():
     res = "data: " + json.dumps(res[i]) + "\n\n"
     t2 = time_sync()
     print(f"Recognition time: {t2-t1:.3f}s")
+    print(f"DEBUG: opengait_main result = {res}")
+
     yield res
 
 
@@ -162,7 +173,9 @@ def get_video_frame():
         #     time.sleep(0.1)
         if not label and person_label:
             label = person_label.pop(0)
-            # print(f"{label=}")
+            print("label------------------",label)
+            if label is None:
+                print("DEBUG: Popped None from person_label!")
         frame = yolov5_detect_person(frame, label)
         # frame = yolov8_detect_person(frame, label)
 
@@ -171,6 +184,8 @@ def get_video_frame():
             continue
 
         frame = b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n'
+        
+        #print("frame========",frame)
         yield frame
 
     video.release()

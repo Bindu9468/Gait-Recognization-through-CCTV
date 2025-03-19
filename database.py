@@ -94,14 +94,41 @@ def update_person_data(pid, pname, gender, age, email, phone, address, other, pt
 
     timetag = timetag if timetag else datetime.now().strftime('%Y-%m-%d %H:%M:%S')  
     cur.execute(
-        "UPDATE person SET pname = ?, gender = ?, age = ?,  email = ?, phone = ?, address = ?, other = ?, ptag = ? timetag = ? where pid = ?",
+        "UPDATE person SET pname = ?, gender = ?, age = ?,  email = ?, phone = ?, address = ?, other = ?, ptag = ? , timetag = ? where pid = ?",
         [pname, gender, age, email, phone, address, other, ptag, timetag, pid])
 
    
     close_db(db, cur)
 
     return True
+"""
 
+def update_person_data(cur, conn, vid, pname, gender, age, email, phone, address, other, ptag, timetag, pid):
+    # Check if vid is linked to a pid
+    cur.execute("SELECT pid FROM person WHERE vid = ?", (vid,))
+    result = cur.fetchone()
+
+    if not result:
+        print(f"Debug: vid={vid} not found or not linked to any pid! (this scenario should not be there)")
+        return
+
+    # Ensure pname exists before updating
+    if not pname:
+        print("Debug: pname is missing, not updating database.")
+        return
+
+    # Update the person data in the database
+    cur.execute(
+        "UPDATE person 
+           SET pname = ?, gender = ?, age = ?, email = ?, phone = ?, address = ?, 
+               other = ?, ptag = ?, timetag = ? 
+           WHERE pid = ?",
+        (pname, gender, age, email, phone, address, other, ptag, timetag, pid)
+    )
+
+    conn.commit()
+    print(f"Debug: Successfully updated person with pid={pid}")
+"""
 
 def get_pid_from_name(person_name):
     """
@@ -186,13 +213,84 @@ def get_pid_vname_from_vid(vid):
     close_db(db, cur)
     return pid, vname
 
-
+"""
 def get_pname_from_vid(vid):
     db, cur = get_db()
     cur.execute("SELECT pname from person where pid IN(SELECT pid from video WHERE vid = ?)", [vid])
     result = cur.fetchone()
     pname = result[0] if result else "None"
     close_db(db, cur)
+    return pname
+
+
+def get_pname_from_vid(vid):
+    db, cur = get_db()
+
+    # Check if vid exists and get pid
+    cur.execute("SELECT pid FROM video WHERE vid = ?", [vid])
+    pid_result = cur.fetchone()
+
+    if not pid_result or not pid_result[0]:
+        print(f"Debug: vid={vid} not found or not linked to any pid!")
+        close_db(db, cur)
+        return None  # No valid pid, return None
+
+    pid = pid_result[0]
+    print(f"Debug: Retrieved pid={pid} for vid={vid}")
+
+    # Now, check if the pid exists in person table
+    cur.execute("SELECT pname FROM person WHERE pid = ?", [pid])
+    pname_result = cur.fetchone()
+
+    if not pname_result:
+        print(f"Debug: pid={pid} (from vid={vid}) not found in person table!")
+        pname = None
+    else:
+        pname = pname_result[0]
+        print(f"Debug: Retrieved pname={pname} for pid={pid}")
+
+    debug_check_pids(cur)  # Ensure this function is not filtering or affecting results
+    close_db(db, cur)
+
+    return pname
+    
+ """
+
+def get_pname_from_vid(vid):
+    db, cur = get_db()
+
+    # Check if vid exists and get pid
+    cur.execute("SELECT pid FROM video WHERE vid = ?", [vid])
+    pid_result = cur.fetchone()
+
+    if not pid_result or not pid_result[0]:  # If vid not found or not linked to any pid
+        print(f"Debug: vid={vid} not found or not linked to any pid! Removing from DB...")
+
+        # Delete vid since it's unlinked
+        cur.execute("DELETE FROM video WHERE vid = ?", [vid])
+        db.commit()
+        print(f"Debug: Removed vid={vid} from database.")
+
+        close_db(db, cur)
+        return None  # No valid pid, return None
+
+    pid = pid_result[0]
+    print(f"Debug: Retrieved pid={pid} for vid={vid}")
+
+    # Now, check if the pid exists in person table
+    cur.execute("SELECT pname FROM person WHERE pid = ?", [pid])
+    pname_result = cur.fetchone()
+
+    if not pname_result:
+        print(f"Debug: pid={pid} (from vid={vid}) not found in person table!")
+        pname = None
+    else:
+        pname = pname_result[0]
+        print(f"Debug: Retrieved pname={pname} for pid={pid}")
+
+    debug_check_pids(cur)  # Ensure this function is not filtering or affecting results
+    close_db(db, cur)
+
     return pname
 
 
@@ -263,6 +361,44 @@ opt = parser.parse_args()
 # opt.delete_person_by_name = ""
 # opt.delete_video = "90302d25"
 # opt.delete_probe_video = "90302d25"
+
+def debug_check_pids(cur):
+    print("\n===== DEBUGGING PIDs =====")
+
+    # Print all PIDs in video table
+    cur.execute("SELECT vid, pid FROM video")
+    video_pids = cur.fetchall()
+    print("Debug: Video Table (vid, pid) ->", video_pids)
+
+    # Print all PIDs in person table
+    cur.execute("SELECT pid, pname FROM person")
+    person_pids = cur.fetchall()
+    print("Debug: Person Table (pid, pname) ->", person_pids)
+
+    # Print distinct PIDs in video table
+    cur.execute("SELECT DISTINCT pid FROM video")
+    video_distinct_pids = cur.fetchall()
+    print("Debug: DISTINCT PIDs in video table ->", [row[0] for row in video_distinct_pids])
+
+    # Print distinct PIDs in person table
+    cur.execute("SELECT DISTINCT pid FROM person")
+    person_distinct_pids = cur.fetchall()
+    print("Debug: DISTINCT PIDs in person table ->", [row[0] for row in person_distinct_pids])
+
+    # Check if any PIDs are NULL in video table
+    cur.execute("SELECT vid FROM video WHERE pid IS NULL")
+    null_pids = cur.fetchall()
+    print("Debug: Video records with NULL pid ->", null_pids)
+
+    # Check if PIDs 1028, 1029, 1030 exist in video table
+    cur.execute("SELECT vid, pid FROM video WHERE pid IN (1028, 1029, 1030)")
+    extra_pids = cur.fetchall()
+    print("Debug: Unexpected PIDs (1028, 1029, 1030) in video table ->", extra_pids)
+
+    print("===== END OF DEBUGGING =====\n")
+
+
+
 
 if __name__ == '__main__':
     if opt.delete_video:
